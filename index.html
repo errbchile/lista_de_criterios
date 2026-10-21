@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi lista de criterios para elegir pareja</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="page-header">
+    <h1>Mi lista de criterios para elegir pareja, novia o esposa</h1>
+    <div class="instructions">
+      <p class="instructions-title">Instrucciones: responder cada pregunta con sinceridad. Clasificar cada criterio como:</p>
+      <ul>
+        <li><strong class="tag t-n">N</strong> No negociable.</li>
+        <li><strong class="tag t-p">P</strong> Preferencia importante, pero negociable.</li>
+        <li><strong class="tag t-d">D</strong> Deseable, pero prescindible.</li>
+      </ul>
+    </div>
+    <div class="toolbar no-print">
+      <button type="button" id="print-btn">Imprimir</button>
+      <button type="button" id="clear-btn" class="danger">Limpiar todo</button>
+      <span id="save-status" aria-live="polite"></span>
+    </div>
+  </header>
+
+  <main id="content"></main>
+
+  <footer class="page-footer">
+    <p>Documento personal — respuestas guardadas en este navegador.</p>
+  </footer>
+
+  <script>
+    const STORAGE_KEY = 'criterios-pareja-v1';
+
+    const SECTIONS = [
+      { num: 1, title: 'Valores, principios y carácter', preguntas: [
+        '¿Cuáles son los cinco valores más importantes que quiero que tenga mi futura esposa?',
+        '¿Qué comportamientos considero inaceptables, aunque ocurran una sola vez?',
+        '¿Qué importancia tienen para mí la honestidad, la lealtad y la integridad?',
+        '¿Necesito que sea una persona humilde, capaz de reconocer sus errores y pedir perdón?',
+        '¿Qué importancia tiene que sus acciones sean coherentes con sus palabras?',
+        '¿Podría estar con alguien que tenga valores distintos a los míos? ¿En cuáles?',
+        '¿Qué defectos de carácter podría aceptar y cuáles no?',
+        '¿Qué cualidades considero imprescindibles para confiar plenamente en una persona?'
+      ]},
+      { num: 2, title: 'Fidelidad, exclusividad y límites', preguntas: [
+        '¿Qué significa exactamente la fidelidad para mí?',
+        '¿Qué comportamientos considero infidelidad, además de mantener relaciones sexuales con otra persona?',
+        '¿Considero aceptable mantener conversaciones románticas o sexuales con otras personas?',
+        '¿Qué límites deberían existir con las exparejas?',
+        '¿Qué límites considero apropiados en las amistades con personas del sexo que le atrae?',
+        '¿Qué importancia doy a la transparencia respecto a las redes sociales y las comunicaciones?',
+        '¿Qué conductas destruirían definitivamente mi confianza?',
+        '¿Qué necesito para sentir seguridad y confianza sin caer en los celos o el control?'
+      ]},
+      { num: 3, title: 'Madurez emocional y resolución de conflictos', preguntas: [
+        '¿Cómo espero que mi pareja se comporte cuando está enfadada?',
+        '¿Qué considero inaceptable durante una discusión: insultos, gritos, desprecio, amenazas o chantaje emocional?',
+        '¿Necesito que sea capaz de reconocer sus errores y disculparse sinceramente?',
+        '¿Cómo espero que resolvamos los desacuerdos?',
+        '¿Qué importancia tiene para mí que sepa expresar sus emociones y necesidades?',
+        '¿Podría estar con alguien que evita las conversaciones difíciles?',
+        '¿Qué nivel de estabilidad emocional necesito en mi pareja?',
+        '¿Cómo distinguiría una imperfección normal de un patrón de comportamiento dañino?',
+        '¿Qué tendría que suceder para que considerase imposible continuar una relación?'
+      ]},
+      { num: 4, title: 'Matrimonio, compromiso y proyecto de vida', preguntas: [
+        '¿Quiero casarme legalmente o me basta con una relación estable?',
+        '¿Considero el matrimonio un compromiso para toda la vida?',
+        '¿Qué significa para mí ser un buen esposo?',
+        '¿Qué espero de una esposa y qué debería esperar ella de mí?',
+        '¿Qué importancia tiene para mí que ambos prioricemos nuestra relación?',
+        '¿Qué decisiones importantes debemos tomar siempre conjuntamente?',
+        '¿Qué expectativas tengo sobre dónde vivir y cómo organizar nuestra vida?',
+        '¿Qué circunstancias justificarían terminar el matrimonio?',
+        '¿Qué sacrificios estoy dispuesto a hacer por mi pareja y cuáles no?'
+      ]},
+      { num: 5, title: 'Hijos y crianza', preguntas: [
+        '¿Quiero tener hijos? ¿Cuántos me gustaría tener?',
+        '¿Es imprescindible que mi pareja también quiera tener hijos?',
+        '¿Qué haríamos si uno de nosotros cambiara de opinión?',
+        '¿Qué principios considero fundamentales para educar a nuestros hijos?',
+        '¿Cómo repartiríamos las responsabilidades de crianza?',
+        '¿Qué estilo de disciplina considero adecuado?',
+        '¿Qué importancia tiene para mí que ambos participemos activamente en la vida de nuestros hijos?',
+        '¿Qué papel deberían tener los abuelos y otros familiares en su educación?',
+        '¿Cómo afrontaríamos dificultades de fertilidad o necesidades especiales de un hijo?',
+        '¿Qué diferencias educativas serían negociables y cuáles no?'
+      ]},
+      { num: 6, title: 'Religión, espiritualidad y filosofía de vida', preguntas: [
+        '¿Qué importancia tiene la fe o la religión en mi vida?',
+        '¿Necesito que mi pareja comparta mis creencias?',
+        '¿Espero que practique la religión conmigo?',
+        '¿Cómo me gustaría educar espiritualmente a nuestros hijos?',
+        '¿Podría aceptar que mi pareja tuviera creencias diferentes o no creyera en Dios?',
+        '¿Qué valores morales considero universales e imprescindibles?',
+        '¿Qué diferencias filosóficas o religiosas podrían generar conflictos importantes?',
+        '¿Qué tradiciones y prácticas espirituales quisiera compartir con mi familia?'
+      ]},
+      { num: 7, title: 'Dinero, trabajo y responsabilidad económica', preguntas: [
+        '¿Qué importancia tiene para mí que mi pareja sea responsable con el dinero?',
+        '¿Espero que ambos trabajemos y generemos ingresos?',
+        '¿Quiero asumir principalmente el papel de proveedor económico?',
+        '¿Cómo imagino el reparto de los gastos del hogar?',
+        '¿Prefiero cuentas conjuntas, separadas o una combinación de ambas?',
+        '¿Qué nivel de deuda o desorden financiero consideraría inaceptable?',
+        '¿Qué importancia tienen el ahorro, la planificación y la estabilidad financiera?',
+        '¿Cómo tomaríamos decisiones sobre compras importantes e inversiones?',
+        '¿Qué expectativas tengo sobre la carrera profesional y las ambiciones de mi pareja?',
+        '¿Qué haríamos si uno ganara mucho más que el otro o dejara de trabajar para cuidar a los hijos?'
+      ]},
+      { num: 8, title: 'Roles en el hogar y responsabilidades', preguntas: [
+        '¿Cómo imagino los roles del marido y la esposa?',
+        '¿Prefiero una relación tradicional, igualitaria o una combinación de ambas?',
+        '¿Qué responsabilidades espero asumir yo?',
+        '¿Qué responsabilidades espero que asuma mi pareja?',
+        '¿Cómo repartiríamos la cocina, la limpieza, las compras y otras tareas domésticas?',
+        '¿Cómo repartiríamos las responsabilidades si tuviéramos hijos?',
+        '¿Qué importancia tiene para mí que ambos seamos autónomos y resolutivos?',
+        '¿Qué pasaría si nuestras preferencias sobre los roles familiares fueran diferentes?',
+        '¿Qué acuerdos podrían revisarse si cambian nuestras circunstancias?'
+      ]},
+      { num: 9, title: 'Atracción física, intimidad y sexualidad', preguntas: [
+        '¿Qué nivel de atracción física necesito sentir para iniciar una relación seria?',
+        '¿Qué características físicas son imprescindibles para mí y cuáles son simples preferencias?',
+        '¿Qué importancia tienen la química, el cariño y la conexión emocional?',
+        '¿Qué importancia tiene para mí la compatibilidad sexual?',
+        '¿Podemos hablar abiertamente de nuestros deseos, límites y necesidades?',
+        '¿Qué expectativas tengo sobre la frecuencia de las relaciones sexuales?',
+        '¿Cómo abordaríamos diferencias en el deseo sexual?',
+        '¿Qué importancia tienen el afecto físico y las muestras cotidianas de cariño?',
+        '¿Qué límites personales y principios éticos quiero respetar en nuestra intimidad?',
+        '¿Cómo afrontaríamos cambios físicos, enfermedades, embarazo o etapas de menor intimidad?'
+      ]},
+      { num: 10, title: 'Pasado sentimental y sexual', preguntas: [
+        '¿Qué importancia tiene para mí el historial sentimental de mi pareja?',
+        '¿Me importa el número de parejas anteriores? ¿Por qué?',
+        '¿Qué importancia tienen las experiencias que haya tenido en relaciones anteriores?',
+        '¿Qué necesito saber sobre su pasado para tomar una decisión informada?',
+        '¿Qué comportamientos pasados me preocuparían si siguieran presentes?',
+        '¿Cómo valoraría que hubiera aprendido de sus errores y cambiado con el tiempo?',
+        '¿Podría aceptar que tuviera hijos de una relación anterior?',
+        '¿Qué límites considero importantes respecto a sus exparejas?',
+        '¿Estoy aplicando los mismos criterios a mi propio pasado que al suyo?'
+      ]},
+      { num: 11, title: 'Estilo de vida, hábitos y salud', preguntas: [
+        '¿Qué importancia tienen para mí el ejercicio, la alimentación y el cuidado personal?',
+        '¿Podría estar con alguien que tenga hábitos diferentes a los míos?',
+        '¿Qué postura tengo respecto al tabaco, el alcohol, las drogas y las apuestas?',
+        '¿Qué nivel de actividad social necesito compartir con mi pareja?',
+        '¿Prefiero una vida tranquila en casa o una vida con muchas salidas y viajes?',
+        '¿Qué importancia tienen el orden y la limpieza en el hogar?',
+        '¿Qué hábitos serían incompatibles con la vida que quiero construir?',
+        '¿Qué importancia tienen el descanso, la rutina y el equilibrio entre trabajo y vida personal?'
+      ]},
+      { num: 12, title: 'Personalidad, intereses y compatibilidad cotidiana', preguntas: [
+        '¿Prefiero una pareja introvertida, extrovertida o me resulta indiferente?',
+        '¿Qué tipo de humor y personalidad me atraen?',
+        '¿Qué importancia tiene compartir aficiones?',
+        '¿Necesito que mi pareja tenga ambiciones y objetivos propios?',
+        '¿Qué diferencias de personalidad podrían complementar las mías?',
+        '¿Qué diferencias podrían generar conflictos cotidianos?',
+        '¿Cuánto tiempo necesito compartir con mi pareja y cuánto tiempo a solas?',
+        '¿Qué importancia tiene que podamos conversar y disfrutar de la compañía mutua?',
+        '¿Podría aceptar que tuviera intereses que no comparto?'
+      ]},
+      { num: 13, title: 'Familia de origen, amistades y entorno social', preguntas: [
+        '¿Qué importancia tiene para mí la relación de mi pareja con su familia?',
+        '¿Qué límites considero necesarios para que nuestras familias no interfieran en el matrimonio?',
+        '¿Qué importancia tiene que mi pareja se lleve bien con mi familia?',
+        '¿Cómo actuaríamos si uno de nuestros familiares faltara al respeto al otro?',
+        '¿Qué límites deberían existir respecto a los consejos y opiniones de terceros?',
+        '¿Qué tipo de amistades y comportamientos sociales me resultan compatibles con una relación comprometida?',
+        '¿Cómo repartiríamos las fiestas, vacaciones y visitas familiares?',
+        '¿Podría aceptar diferencias culturales importantes?',
+        '¿Qué nivel de independencia respecto a nuestras familias considero saludable?'
+      ]},
+      { num: 14, title: 'Apariencia, edad y preferencias personales', preguntas: [
+        '¿Qué características físicas me atraen realmente?',
+        '¿Qué características son preferencias y cuáles afectan genuinamente a mi atracción?',
+        '¿Qué diferencia de edad considero adecuada para mí?',
+        '¿Qué importancia tienen la forma de vestir y la presentación personal?',
+        '¿Qué preferencias son razonables y cuáles podrían ser expectativas poco realistas?',
+        '¿Estoy dispuesto a conocer a alguien que no encaje exactamente con mi ideal físico?',
+        '¿Qué aspectos de la apariencia podrían cambiar con el tiempo y cómo afectaría eso a mi relación?'
+      ]},
+      { num: 15, title: 'Comunicación, apoyo y crecimiento mutuo', preguntas: [
+        '¿Qué necesito para sentirme escuchado y comprendido?',
+        '¿Cómo me gustaría que mi pareja me apoyara en los momentos difíciles?',
+        '¿Qué importancia tiene que celebre mis logros y respete mis objetivos?',
+        '¿Cómo espero que reaccionemos ante los fracasos del otro?',
+        '¿Quiero una pareja que me desafíe intelectualmente y me ayude a crecer?',
+        '¿Cómo manejaríamos los periodos de estrés o incertidumbre?',
+        '¿Qué importancia tiene que ambos podamos hablar de temas incómodos?',
+        '¿Estamos dispuestos a cambiar hábitos y aprender para mejorar la relación?',
+        '¿Cómo evitaríamos que la rutina deteriorase nuestra conexión?'
+      ]},
+      { num: 16, title: 'Límites absolutos y motivos para terminar', preguntas: [
+        '¿Qué comportamientos serían motivos inmediatos para terminar la relación?',
+        '¿Considero inaceptable cualquier forma de violencia física o sexual?',
+        '¿Qué haría si descubriera mentiras importantes o una infidelidad?',
+        '¿Qué límites no permitiría que se cruzaran de manera repetida?',
+        '¿Qué patrones de manipulación, control o humillación serían incompatibles con mi bienestar?',
+        '¿Qué haría si mi pareja se negara sistemáticamente a resolver problemas importantes?',
+        '¿Qué diferencias fundamentales no podrían solucionarse mediante acuerdos?',
+        '¿Qué señales me indicarían que estoy permaneciendo en una relación por miedo a la soledad?',
+        '¿Qué situaciones justificarían intentar reparar la relación y cuáles indicarían que debo marcharme?'
+      ]},
+      { num: 17, title: 'Autoevaluación: qué puedo ofrecer yo', preguntas: [
+        '¿Qué clase de esposo quiero ser?',
+        '¿Qué cualidades espero de mi pareja que todavía necesito desarrollar en mí?',
+        '¿Soy capaz de reconocer mis errores y pedir perdón?',
+        '¿Estoy preparado para comprometerme emocional, económica y prácticamente?',
+        '¿Qué hábitos o defectos míos podrían dificultar una relación?',
+        '¿Soy capaz de respetar los límites y la autonomía de mi pareja?',
+        '¿Qué estoy dispuesto a aportar al hogar y a la crianza de los hijos?',
+        '¿Qué expectativas mías podrían ser injustas o poco realistas?',
+        '¿Estoy buscando una compañera de vida o una persona que cumpla una lista de requisitos?',
+        '¿Qué puedo hacer para convertirme en el tipo de pareja que deseo encontrar?'
+      ]}
+    ];
+
+    const FINAL_BLOCKS = [
+      { label: 'A. Mis 5 no negociables absolutos', items: 5 },
+      { label: 'B. Mis 5 preferencias más importantes', items: 5 },
+      { label: 'C. Mis 5 características deseables, pero prescindibles', items: 5 },
+      { label: 'D. Mis motivos para terminar una relación', items: 5 },
+      { label: 'E. Mis 5 cualidades más importantes como futuro esposo', items: 5 },
+      { label: 'F. Mis tres preguntas imprescindibles antes del matrimonio', items: 3 },
+      { label: 'G. Mi reflexión final: ¿qué tipo de vida quiero construir, qué clase de mujer encaja con esa vida y qué estoy dispuesto a ofrecer para construirla juntos?', textarea: true }
+    ];
+
+    const L = (tag, attrs, children) => {
+      const el = document.createElement(tag);
+      for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+      if (children) children.forEach(c => el.append(c));
+      return el;
+    };
+
+    const buildSegment = key => {
+      const seg = L('div', { class: 'seg', role: 'radiogroup', 'aria-label': 'Clasificación del criterio' });
+      [['n', 'N', 'No negociable'], ['p', 'P', 'Preferencia importante'], ['d', 'D', 'Deseable']].forEach(([cls, txt, title]) => {
+        const id = `${key}-${cls}`;
+        const input = L('input', { type: 'radio', name: key, value: cls, id, 'data-key': key });
+        const label = L('label', { for: id, class: `opt ${cls}`, title }, [input, L('span', {}, [document.createTextNode(txt)])]);
+        seg.append(label);
+      });
+      return seg;
+    };
+
+    const buildQuestion = (secNum, idx, text) => {
+      const key = `s${secNum}q${idx + 1}`;
+      const article = L('article', { class: 'q' });
+      article.append(
+        L('h3', { class: 'q-text' }, [
+          L('span', { class: 'q-num' }, [document.createTextNode(`${secNum}.${idx + 1}`)]),
+          document.createTextNode(' ' + text)
+        ])
+      );
+      article.append(buildSegment(key));
+      const ta = L('textarea', { rows: 3, placeholder: 'Tu respuesta…', 'data-key': key });
+      article.append(ta);
+      return article;
+    };
+
+    const buildSection = sec => {
+      const section = L('section', { class: 'estudio', id: `sec-${sec.num}` });
+      section.append(L('h2', { class: 'sec-title' }, [
+        L('span', { class: 'sec-num' }, [document.createTextNode(String(sec.num))]),
+        document.createTextNode(' ' + sec.title)
+      ]));
+      sec.preguntas.forEach((q, i) => section.append(buildQuestion(sec.num, i, q)));
+      return section;
+    };
+
+    const buildFinal = () => {
+      const section = L('section', { class: 'estudio final', id: 'sec-18' });
+      section.append(L('h2', { class: 'sec-title' }, [
+        L('span', { class: 'sec-num' }, [document.createTextNode('18')]),
+        document.createTextNode(' Decisión final: mi lista priorizada')
+      ]));
+      section.append(L('p', { class: 'sec-intro' }, [document.createTextNode('Después de responder todas las preguntas, completaré estas categorías:')]));
+
+      FINAL_BLOCKS.forEach((block, bi) => {
+        const box = L('div', { class: 'list-block' });
+        box.append(L('h3', { class: 'block-title' }, [document.createTextNode(block.label)]));
+        if (block.textarea) {
+          const key = `s18b${bi}`;
+          box.append(L('textarea', { rows: 8, placeholder: 'Escribe aquí tu reflexión…', 'data-key': key }));
+        } else {
+          for (let i = 0; i < block.items; i++) {
+            const key = `s18b${bi}i${i}`;
+            const row = L('div', { class: 'list-row' });
+            row.append(L('span', { class: 'row-num' }, [document.createTextNode(`${i + 1}.`)]));
+            row.append(L('input', { type: 'text', placeholder: '…', 'data-key': key }));
+            box.append(row);
+          }
+        }
+        section.append(box);
+      });
+      return section;
+    };
+
+    const content = document.getElementById('content');
+    SECTIONS.forEach(sec => content.append(buildSection(sec)));
+    content.append(buildFinal());
+
+    const loadData = () => {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+      } catch {
+        return {};
+      }
+    };
+
+    const data = loadData();
+    document.querySelectorAll('[data-key]').forEach(el => {
+      if (el.type === 'radio') {
+        if (el.value === data[el.dataset.key]) el.checked = true;
+      } else if (data[el.dataset.key]) {
+        el.value = data[el.dataset.key];
+      }
+    });
+
+    const statusEl = document.getElementById('save-status');
+    let saveTimer = null;
+
+    const doSave = () => {
+      const out = {};
+      document.querySelectorAll('[data-key]').forEach(el => {
+        const filled = el.type === 'radio' ? el.checked : el.value.trim() !== '';
+        const value = el.type === 'radio' ? el.value : el.value;
+        if (filled) out[el.dataset.key] = value;
+      });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(out));
+      statusEl.textContent = 'Guardado ✓';
+      statusEl.classList.add('visible');
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => statusEl.classList.remove('visible'), 1500);
+    };
+
+    document.addEventListener('input', e => {
+      if (e.target.matches('[data-key]')) doSave();
+    });
+    document.addEventListener('change', e => {
+      if (e.target.matches('[data-key]')) doSave();
+    });
+
+    document.getElementById('print-btn').addEventListener('click', () => window.print());
+
+    document.getElementById('clear-btn').addEventListener('click', () => {
+      if (!confirm('¿Seguro que quieres borrar todas las respuestas guardadas? Esta acción no se puede deshacer.')) return;
+      localStorage.removeItem(STORAGE_KEY);
+      document.querySelectorAll('[data-key]').forEach(el => {
+        if (el.type === 'radio') el.checked = false;
+        else el.value = '';
+      });
+      statusEl.textContent = 'Respuestas borradas';
+      statusEl.classList.add('visible');
+      setTimeout(() => statusEl.classList.remove('visible'), 2000);
+    });
+
+    // Expandir textareas al imprimir para que se vea todo el texto sin cortes.
+    window.addEventListener('beforeprint', () => {
+      document.querySelectorAll('textarea').forEach(t => {
+        t.dataset.h = t.style.height || '';
+        t.style.height = 'auto';
+        t.style.height = Math.max(t.scrollHeight, 40) + 'px';
+      });
+    });
+    window.addEventListener('afterprint', () => {
+      document.querySelectorAll('textarea[data-h]').forEach(t => {
+        t.style.height = t.dataset.h;
+        delete t.dataset.h;
+      });
+    });
+  </script>
+</body>
+</html>
