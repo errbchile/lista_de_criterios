@@ -10,225 +10,188 @@
   <header class="page-header">
     <h1>Mi lista de criterios para elegir pareja, novia o esposa</h1>
     <div class="instructions">
-      <p class="instructions-title">Instrucciones: responder cada pregunta con sinceridad. Clasificar cada criterio como:</p>
+      <p class="instructions-title">Instrucciones: responde cada criterio seleccionando únicamente una de estas dos opciones:</p>
       <ul>
-        <li><strong class="tag t-n">N</strong> No negociable.</li>
-        <li><strong class="tag t-p">P</strong> Preferencia importante, pero negociable.</li>
-        <li><strong class="tag t-d">D</strong> Deseable, pero prescindible.</li>
+        <li><strong class="opt-preview no">No negociable para mí</strong> cuando consideres que ese criterio es imprescindible en una relación seria.</li>
+        <li><strong class="opt-preview si">Negociable para mí</strong> cuando puedas aceptar diferencias en ese aspecto.</li>
       </ul>
+      <p class="instructions-note">La lista sirve para identificar mis prioridades, no para buscar una persona perfecta.</p>
     </div>
     <div class="toolbar no-print">
       <button type="button" id="print-btn">Imprimir</button>
       <button type="button" id="clear-btn" class="danger">Limpiar todo</button>
+      <button type="button" id="export-btn">Exportar JSON</button>
+      <button type="button" id="import-btn">Importar JSON</button>
+      <input type="file" id="import-file" accept=".json,application/json" hidden>
+      <button type="button" id="progress-btn" title="Ir a la primera pregunta sin responder">0 de 91 respondidas</button>
       <span id="save-status" aria-live="polite"></span>
     </div>
   </header>
 
   <main id="content"></main>
 
+  <div class="modal-overlay no-print" id="clear-modal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="clear-modal-title">
+      <h2 id="clear-modal-title">¿Borrar todas las respuestas?</h2>
+      <p>Se eliminarán las respuestas y notas guardadas en este navegador. Esta acción se puede deshacer durante 8 segundos con el botón «Restaurar».</p>
+      <div class="modal-actions">
+        <button type="button" id="clear-cancel-btn">Cancelar</button>
+        <button type="button" id="clear-confirm-btn" class="danger">Borrar todo</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast no-print" id="restore-toast" hidden>
+    <span>Respuestas borradas.</span>
+    <button type="button" id="restore-btn">Restaurar</button>
+    <button type="button" class="close" aria-label="Cerrar">&times;</button>
+  </div>
+
+  <button type="button" id="nav-fab" class="no-print" aria-expanded="false" aria-haspopup="true" title="Ir a una sección">
+    <span id="fab-count">0</span><span class="fab-label">/94</span>
+  </button>
+
+  <div id="nav-panel" class="no-print" hidden>
+    <div class="nav-panel-title">Ir a la sección</div>
+  </div>
+
   <footer class="page-footer">
     <p>Documento personal — respuestas guardadas en este navegador.</p>
   </footer>
 
   <script>
-    const STORAGE_KEY = 'criterios-pareja-v1';
+    const STORAGE_KEY = 'criterios-pareja-v2';
 
     const SECTIONS = [
       { num: 1, title: 'Valores, principios y carácter', preguntas: [
-        '¿Cuáles son los cinco valores más importantes que quiero que tenga mi futura esposa?',
-        '¿Qué comportamientos considero inaceptables, aunque ocurran una sola vez?',
-        '¿Qué importancia tienen para mí la honestidad, la lealtad y la integridad?',
-        '¿Necesito que sea una persona humilde, capaz de reconocer sus errores y pedir perdón?',
-        '¿Qué importancia tiene que sus acciones sean coherentes con sus palabras?',
-        '¿Podría estar con alguien que tenga valores distintos a los míos? ¿En cuáles?',
-        '¿Qué defectos de carácter podría aceptar y cuáles no?',
-        '¿Qué cualidades considero imprescindibles para confiar plenamente en una persona?'
+        '¿Es imprescindible para mí que mi pareja sea honesta y sincera?',
+        '¿Es imprescindible para mí que mi pareja sea leal y cumpla sus compromisos?',
+        '¿Es imprescindible para mí que mi pareja reconozca sus errores y pida perdón?',
+        '¿Es imprescindible para mí que sus acciones sean coherentes con sus palabras?',
+        '¿Es imprescindible para mí compartir con mi pareja los valores fundamentales de la vida?',
+        '¿Es imprescindible para mí que mi pareja me trate con respeto incluso cuando estamos en desacuerdo?'
       ]},
       { num: 2, title: 'Fidelidad, exclusividad y límites', preguntas: [
-        '¿Qué significa exactamente la fidelidad para mí?',
-        '¿Qué comportamientos considero infidelidad, además de mantener relaciones sexuales con otra persona?',
-        '¿Considero aceptable mantener conversaciones románticas o sexuales con otras personas?',
-        '¿Qué límites deberían existir con las exparejas?',
-        '¿Qué límites considero apropiados en las amistades con personas del sexo que le atrae?',
-        '¿Qué importancia doy a la transparencia respecto a las redes sociales y las comunicaciones?',
-        '¿Qué conductas destruirían definitivamente mi confianza?',
-        '¿Qué necesito para sentir seguridad y confianza sin caer en los celos o el control?'
+        '¿Es imprescindible para mí una relación sentimental y sexual exclusivamente entre nosotros?',
+        '¿Es imprescindible para mí que no haya coqueteos románticos o sexuales con otras personas?',
+        '¿Es imprescindible para mí que no haya conversaciones sexuales o románticas ocultas con otras personas?',
+        '¿Es imprescindible para mí establecer límites claros con las exparejas?',
+        '¿Es imprescindible para mí que ambos respetemos los límites acordados sobre amistades y redes sociales?',
+        '¿Es imprescindible para mí que mi pareja sea transparente cuando ocurre algo que puede afectar a nuestra confianza?'
       ]},
       { num: 3, title: 'Madurez emocional y resolución de conflictos', preguntas: [
-        '¿Cómo espero que mi pareja se comporte cuando está enfadada?',
-        '¿Qué considero inaceptable durante una discusión: insultos, gritos, desprecio, amenazas o chantaje emocional?',
-        '¿Necesito que sea capaz de reconocer sus errores y disculparse sinceramente?',
-        '¿Cómo espero que resolvamos los desacuerdos?',
-        '¿Qué importancia tiene para mí que sepa expresar sus emociones y necesidades?',
-        '¿Podría estar con alguien que evita las conversaciones difíciles?',
-        '¿Qué nivel de estabilidad emocional necesito en mi pareja?',
-        '¿Cómo distinguiría una imperfección normal de un patrón de comportamiento dañino?',
-        '¿Qué tendría que suceder para que considerase imposible continuar una relación?'
+        '¿Es imprescindible para mí que podamos discutir sin insultos, humillaciones, sarcasmos, ni amenazas?',
+        '¿Es imprescindible para mí que ambos podamos hablar de los problemas sin evitarlos sistemáticamente?',
+        '¿Es imprescindible para mí que mi pareja se responsabilice de sus comportamientos dañinos y trate de cambiarlos?',
+        '¿Es imprescindible para mí que ambos estemos dispuestos a buscar soluciones cuando tenemos desacuerdos?',
+        '¿Es imprescindible para mí que mi pareja pueda expresar sus emociones y necesidades de manera respetuosa?',
+        '¿Es imprescindible para mí que mi pareja evite conductas repetidas de manipulación, control o desprecio?'
       ]},
       { num: 4, title: 'Matrimonio, compromiso y proyecto de vida', preguntas: [
-        '¿Quiero casarme legalmente o me basta con una relación estable?',
-        '¿Considero el matrimonio un compromiso para toda la vida?',
-        '¿Qué significa para mí ser un buen esposo?',
-        '¿Qué espero de una esposa y qué debería esperar ella de mí?',
-        '¿Qué importancia tiene para mí que ambos prioricemos nuestra relación?',
-        '¿Qué decisiones importantes debemos tomar siempre conjuntamente?',
-        '¿Qué expectativas tengo sobre dónde vivir y cómo organizar nuestra vida?',
-        '¿Qué circunstancias justificarían terminar el matrimonio?',
-        '¿Qué sacrificios estoy dispuesto a hacer por mi pareja y cuáles no?'
+        '¿Es imprescindible para mí que nuestra relación tenga como objetivo el matrimonio?',
+        '¿Es imprescindible para mí que ambos consideremos el matrimonio un compromiso duradero y de máxima importancia?',
+        '¿Es imprescindible para mí que ambos prioricemos nuestra relación al tomar decisiones importantes?',
+        '¿Es imprescindible para mí que las decisiones importantes del hogar se tomen conjuntamente?',
+        '¿Es imprescindible para mí compartir con mi pareja una visión compatible sobre dónde vivir y cómo construir nuestro futuro?',
+        '¿Es imprescindible para mí que ambos estemos dispuestos a hacer sacrificios razonables por el bienestar de la relación?'
       ]},
       { num: 5, title: 'Hijos y crianza', preguntas: [
-        '¿Quiero tener hijos? ¿Cuántos me gustaría tener?',
-        '¿Es imprescindible que mi pareja también quiera tener hijos?',
-        '¿Qué haríamos si uno de nosotros cambiara de opinión?',
-        '¿Qué principios considero fundamentales para educar a nuestros hijos?',
-        '¿Cómo repartiríamos las responsabilidades de crianza?',
-        '¿Qué estilo de disciplina considero adecuado?',
-        '¿Qué importancia tiene para mí que ambos participemos activamente en la vida de nuestros hijos?',
-        '¿Qué papel deberían tener los abuelos y otros familiares en su educación?',
-        '¿Cómo afrontaríamos dificultades de fertilidad o necesidades especiales de un hijo?',
-        '¿Qué diferencias educativas serían negociables y cuáles no?'
+        '¿Es imprescindible para mí que mi pareja quiera tener hijos?',
+        '¿Es imprescindible para mí que compartamos una idea compatible sobre cuántos hijos queremos tener?',
+        '¿Es imprescindible para mí que ambos participemos activamente en la crianza de nuestros hijos?',
+        '¿Es imprescindible para mí compartir los principios fundamentales sobre la educación y disciplina de nuestros hijos?',
+        '¿Es imprescindible para mí que ambos asumamos responsabilidades reales en el cuidado de los hijos y del hogar?',
+        '¿Es imprescindible para mí que protejamos a nuestros hijos de interferencias familiares perjudiciales?'
       ]},
       { num: 6, title: 'Religión, espiritualidad y filosofía de vida', preguntas: [
-        '¿Qué importancia tiene la fe o la religión en mi vida?',
-        '¿Necesito que mi pareja comparta mis creencias?',
-        '¿Espero que practique la religión conmigo?',
-        '¿Cómo me gustaría educar espiritualmente a nuestros hijos?',
-        '¿Podría aceptar que mi pareja tuviera creencias diferentes o no creyera en Dios?',
-        '¿Qué valores morales considero universales e imprescindibles?',
-        '¿Qué diferencias filosóficas o religiosas podrían generar conflictos importantes?',
-        '¿Qué tradiciones y prácticas espirituales quisiera compartir con mi familia?'
+        '¿Es imprescindible para mí que mi pareja comparta mi religión o mis creencias espirituales?',
+        '¿Es imprescindible para mí que mi pareja practique su fe de una manera compatible con la mía?',
+        '¿Es imprescindible para mí que compartamos los principios morales fundamentales que orientan nuestras decisiones?',
+        '¿Es imprescindible para mí que estemos de acuerdo sobre la educación religiosa o espiritual de nuestros hijos?',
+        '¿Es imprescindible para mí que mi pareja respete mis creencias, incluso cuando no las comparta?'
       ]},
       { num: 7, title: 'Dinero, trabajo y responsabilidad económica', preguntas: [
-        '¿Qué importancia tiene para mí que mi pareja sea responsable con el dinero?',
-        '¿Espero que ambos trabajemos y generemos ingresos?',
-        '¿Quiero asumir principalmente el papel de proveedor económico?',
-        '¿Cómo imagino el reparto de los gastos del hogar?',
-        '¿Prefiero cuentas conjuntas, separadas o una combinación de ambas?',
-        '¿Qué nivel de deuda o desorden financiero consideraría inaceptable?',
-        '¿Qué importancia tienen el ahorro, la planificación y la estabilidad financiera?',
-        '¿Cómo tomaríamos decisiones sobre compras importantes e inversiones?',
-        '¿Qué expectativas tengo sobre la carrera profesional y las ambiciones de mi pareja?',
-        '¿Qué haríamos si uno ganara mucho más que el otro o dejara de trabajar para cuidar a los hijos?'
+        '¿Es imprescindible para mí que mi pareja sea responsable con el dinero y evite el endeudamiento irresponsable?',
+        '¿Es imprescindible para mí compartir una visión compatible sobre el ahorro y la estabilidad económica?',
+        '¿Es imprescindible para mí que ambos contribuyamos económicamente al hogar, según nuestras posibilidades y acuerdos?',
+        '¿Es imprescindible para mí acordar cómo administraremos el dinero y repartiremos los gastos?',
+        '¿Es imprescindible para mí que ambos seamos transparentes sobre las deudas y los compromisos económicos relevantes?',
+        '¿Es imprescindible para mí que las compras importantes y las decisiones financieras relevantes se acuerden entre ambos?',
+        '¿Es imprescindible para mí que nuestras expectativas sobre el trabajo, la carrera profesional y el cuidado de los hijos sean compatibles?'
       ]},
       { num: 8, title: 'Roles en el hogar y responsabilidades', preguntas: [
-        '¿Cómo imagino los roles del marido y la esposa?',
-        '¿Prefiero una relación tradicional, igualitaria o una combinación de ambas?',
-        '¿Qué responsabilidades espero asumir yo?',
-        '¿Qué responsabilidades espero que asuma mi pareja?',
-        '¿Cómo repartiríamos la cocina, la limpieza, las compras y otras tareas domésticas?',
-        '¿Cómo repartiríamos las responsabilidades si tuviéramos hijos?',
-        '¿Qué importancia tiene para mí que ambos seamos autónomos y resolutivos?',
-        '¿Qué pasaría si nuestras preferencias sobre los roles familiares fueran diferentes?',
-        '¿Qué acuerdos podrían revisarse si cambian nuestras circunstancias?'
+        '¿Es imprescindible para mí que compartamos una visión compatible sobre los roles del marido y la esposa?',
+        '¿Es imprescindible para mí que estemos de acuerdo sobre el reparto de las tareas domésticas? (Quién bota la basura, etc)',
+        '¿Es imprescindible para mí que ambos asumamos responsabilidades sin depender constantemente del otro para las tareas cotidianas?',
+        '¿Es imprescindible para mí que el reparto de las responsabilidades pueda adaptarse cuando cambien nuestras circunstancias?'
       ]},
       { num: 9, title: 'Atracción física, intimidad y sexualidad', preguntas: [
-        '¿Qué nivel de atracción física necesito sentir para iniciar una relación seria?',
-        '¿Qué características físicas son imprescindibles para mí y cuáles son simples preferencias?',
-        '¿Qué importancia tienen la química, el cariño y la conexión emocional?',
-        '¿Qué importancia tiene para mí la compatibilidad sexual?',
-        '¿Podemos hablar abiertamente de nuestros deseos, límites y necesidades?',
-        '¿Qué expectativas tengo sobre la frecuencia de las relaciones sexuales?',
-        '¿Cómo abordaríamos diferencias en el deseo sexual?',
-        '¿Qué importancia tienen el afecto físico y las muestras cotidianas de cariño?',
-        '¿Qué límites personales y principios éticos quiero respetar en nuestra intimidad?',
-        '¿Cómo afrontaríamos cambios físicos, enfermedades, embarazo o etapas de menor intimidad?'
+        '¿Es imprescindible para mí sentir una atracción física suficiente hacia mi pareja?',
+        '¿Es imprescindible para mí tener una conexión emocional y afectiva con mi pareja?',
+        '¿Es imprescindible para mí que exista compatibilidad sexual entre nosotros?',
+        '¿Es imprescindible para mí que podamos hablar abiertamente sobre nuestros deseos, límites y necesidades sexuales?',
+        '¿Es imprescindible para mí compartir expectativas compatibles sobre la frecuencia de las relaciones sexuales?',
+        '¿Es imprescindible para mí recibir y expresar afecto físico de manera habitual?',
+        '¿Es imprescindible para mí que ambos respetemos el consentimiento y los límites personales en la intimidad?',
+        '¿Es imprescindible para mí que ambos estemos dispuestos a adaptarnos a los cambios de intimidad que puedan producirse a lo largo de la vida?'
       ]},
-      { num: 10, title: 'Pasado sentimental y sexual', preguntas: [
-        '¿Qué importancia tiene para mí el historial sentimental de mi pareja?',
-        '¿Me importa el número de parejas anteriores? ¿Por qué?',
-        '¿Qué importancia tienen las experiencias que haya tenido en relaciones anteriores?',
-        '¿Qué necesito saber sobre su pasado para tomar una decisión informada?',
-        '¿Qué comportamientos pasados me preocuparían si siguieran presentes?',
-        '¿Cómo valoraría que hubiera aprendido de sus errores y cambiado con el tiempo?',
-        '¿Podría aceptar que tuviera hijos de una relación anterior?',
-        '¿Qué límites considero importantes respecto a sus exparejas?',
-        '¿Estoy aplicando los mismos criterios a mi propio pasado que al suyo?'
+      { num: 10, title: 'Pasado sentimental y situación personal', preguntas: [
+        '¿Es imprescindible para mí que mi pareja haya cerrado emocionalmente sus relaciones anteriores?',
+        '¿Es imprescindible para mí que mi pareja haya aprendido de los errores importantes de sus relaciones anteriores?',
+        '¿Es imprescindible para mí que no mantenga vínculos con exparejas que perjudiquen nuestra relación?',
+        '¿Es imprescindible para mí conocer las circunstancias de su pasado que puedan afectar de manera relevante a nuestro futuro juntos?',
+        '¿Es imprescindible para mí que nuestras circunstancias familiares y responsabilidades previas sean compatibles con la vida que quiero construir?'
       ]},
       { num: 11, title: 'Estilo de vida, hábitos y salud', preguntas: [
-        '¿Qué importancia tienen para mí el ejercicio, la alimentación y el cuidado personal?',
-        '¿Podría estar con alguien que tenga hábitos diferentes a los míos?',
-        '¿Qué postura tengo respecto al tabaco, el alcohol, las drogas y las apuestas?',
-        '¿Qué nivel de actividad social necesito compartir con mi pareja?',
-        '¿Prefiero una vida tranquila en casa o una vida con muchas salidas y viajes?',
-        '¿Qué importancia tienen el orden y la limpieza en el hogar?',
-        '¿Qué hábitos serían incompatibles con la vida que quiero construir?',
-        '¿Qué importancia tienen el descanso, la rutina y el equilibrio entre trabajo y vida personal?'
+        '¿Es imprescindible para mí que mi pareja no consuma drogas de forma recreativa?',
+        '¿Es imprescindible para mí que mi pareja no tenga hábitos problemáticos relacionados con el alcohol, el tabaco o las apuestas?',
+        '¿Es imprescindible para mí compartir hábitos compatibles de higiene, orden y limpieza en el hogar?',
+        '¿Es imprescindible para mí que nuestros estilos de vida sean compatibles en cuanto a actividad social, salidas y viajes?',
+        '¿Es imprescindible para mí que compartamos una visión compatible sobre el ejercicio, la alimentación y el cuidado personal?',
+        '¿Es imprescindible para mí que nuestras rutinas y expectativas sobre el descanso y el tiempo libre sean compatibles?'
       ]},
       { num: 12, title: 'Personalidad, intereses y compatibilidad cotidiana', preguntas: [
-        '¿Prefiero una pareja introvertida, extrovertida o me resulta indiferente?',
-        '¿Qué tipo de humor y personalidad me atraen?',
-        '¿Qué importancia tiene compartir aficiones?',
-        '¿Necesito que mi pareja tenga ambiciones y objetivos propios?',
-        '¿Qué diferencias de personalidad podrían complementar las mías?',
-        '¿Qué diferencias podrían generar conflictos cotidianos?',
-        '¿Cuánto tiempo necesito compartir con mi pareja y cuánto tiempo a solas?',
-        '¿Qué importancia tiene que podamos conversar y disfrutar de la compañía mutua?',
-        '¿Podría aceptar que tuviera intereses que no comparto?'
+        '¿Es imprescindible para mí que podamos conversar y disfrutar de pasar tiempo juntos?',
+        '¿Es imprescindible para mí sentir que compartimos un sentido del humor compatible?',
+        '¿Es imprescindible para mí compartir algunas aficiones e intereses con mi pareja?',
+        '¿Es imprescindible para mí que mi pareja tenga objetivos propios y deseos de crecer personalmente?',
+        '¿Es imprescindible para mí que nuestras necesidades de compañía y tiempo a solas sean compatibles?',
+        '¿Es imprescindible para mí que nuestras personalidades sean compatibles en la vida cotidiana?'
       ]},
       { num: 13, title: 'Familia de origen, amistades y entorno social', preguntas: [
-        '¿Qué importancia tiene para mí la relación de mi pareja con su familia?',
-        '¿Qué límites considero necesarios para que nuestras familias no interfieran en el matrimonio?',
-        '¿Qué importancia tiene que mi pareja se lleve bien con mi familia?',
-        '¿Cómo actuaríamos si uno de nuestros familiares faltara al respeto al otro?',
-        '¿Qué límites deberían existir respecto a los consejos y opiniones de terceros?',
-        '¿Qué tipo de amistades y comportamientos sociales me resultan compatibles con una relación comprometida?',
-        '¿Cómo repartiríamos las fiestas, vacaciones y visitas familiares?',
-        '¿Podría aceptar diferencias culturales importantes?',
-        '¿Qué nivel de independencia respecto a nuestras familias considero saludable?'
+        '¿Es imprescindible para mí que mi pareja establezca límites saludables con su familia cuando sea necesario?',
+        '¿Es imprescindible para mí que ambos defendamos nuestra relación si algún familiar falta al respeto al otro?',
+        '¿Es imprescindible para mí que nuestras amistades y vida social respeten los límites de la relación?',
+        '¿Es imprescindible para mí que podamos acordar cómo repartir las fiestas, vacaciones y visitas familiares?',
+        '¿Es imprescindible para mí que nuestras diferencias culturales sean compatibles con el proyecto de vida que queremos construir?'
       ]},
       { num: 14, title: 'Apariencia, edad y preferencias personales', preguntas: [
-        '¿Qué características físicas me atraen realmente?',
-        '¿Qué características son preferencias y cuáles afectan genuinamente a mi atracción?',
-        '¿Qué diferencia de edad considero adecuada para mí?',
-        '¿Qué importancia tienen la forma de vestir y la presentación personal?',
-        '¿Qué preferencias son razonables y cuáles podrían ser expectativas poco realistas?',
-        '¿Estoy dispuesto a conocer a alguien que no encaje exactamente con mi ideal físico?',
-        '¿Qué aspectos de la apariencia podrían cambiar con el tiempo y cómo afectaría eso a mi relación?'
+        '¿Es imprescindible para mí que mi pareja encaje en mis preferencias físicas fundamentales?',
+        '¿Es imprescindible para mí que exista una diferencia de edad que considere adecuada para una relación seria?',
+        '¿Es imprescindible para mí que compartamos expectativas compatibles sobre la forma de vestir y la presentación personal?',
+        '¿Es imprescindible para mí que la atracción y el cariño puedan mantenerse y adaptarse a los cambios físicos propios de la vida?'
       ]},
       { num: 15, title: 'Comunicación, apoyo y crecimiento mutuo', preguntas: [
-        '¿Qué necesito para sentirme escuchado y comprendido?',
-        '¿Cómo me gustaría que mi pareja me apoyara en los momentos difíciles?',
-        '¿Qué importancia tiene que celebre mis logros y respete mis objetivos?',
-        '¿Cómo espero que reaccionemos ante los fracasos del otro?',
-        '¿Quiero una pareja que me desafíe intelectualmente y me ayude a crecer?',
-        '¿Cómo manejaríamos los periodos de estrés o incertidumbre?',
-        '¿Qué importancia tiene que ambos podamos hablar de temas incómodos?',
-        '¿Estamos dispuestos a cambiar hábitos y aprender para mejorar la relación?',
-        '¿Cómo evitaríamos que la rutina deteriorase nuestra conexión?'
+        '¿Es imprescindible para mí sentirme escuchado y comprendido por mi pareja?',
+        '¿Es imprescindible para mí que mi pareja me apoye en los momentos difíciles y celebre mis logros?',
+        '¿Es imprescindible para mí que ambos respetemos los objetivos personales y profesionales del otro?',
+        '¿Es imprescindible para mí que ambos estemos dispuestos a aprender, cambiar hábitos y mejorar la relación?',
+        '¿Es imprescindible para mí poder hablar con mi pareja de asuntos incómodos o delicados?'
       ]},
-      { num: 16, title: 'Límites absolutos y motivos para terminar', preguntas: [
-        '¿Qué comportamientos serían motivos inmediatos para terminar la relación?',
-        '¿Considero inaceptable cualquier forma de violencia física o sexual?',
-        '¿Qué haría si descubriera mentiras importantes o una infidelidad?',
-        '¿Qué límites no permitiría que se cruzaran de manera repetida?',
-        '¿Qué patrones de manipulación, control o humillación serían incompatibles con mi bienestar?',
-        '¿Qué haría si mi pareja se negara sistemáticamente a resolver problemas importantes?',
-        '¿Qué diferencias fundamentales no podrían solucionarse mediante acuerdos?',
-        '¿Qué señales me indicarían que estoy permaneciendo en una relación por miedo a la soledad?',
-        '¿Qué situaciones justificarían intentar reparar la relación y cuáles indicarían que debo marcharme?'
-      ]},
-      { num: 17, title: 'Autoevaluación: qué puedo ofrecer yo', preguntas: [
-        '¿Qué clase de esposo quiero ser?',
-        '¿Qué cualidades espero de mi pareja que todavía necesito desarrollar en mí?',
-        '¿Soy capaz de reconocer mis errores y pedir perdón?',
-        '¿Estoy preparado para comprometerme emocional, económica y prácticamente?',
-        '¿Qué hábitos o defectos míos podrían dificultar una relación?',
-        '¿Soy capaz de respetar los límites y la autonomía de mi pareja?',
-        '¿Qué estoy dispuesto a aportar al hogar y a la crianza de los hijos?',
-        '¿Qué expectativas mías podrían ser injustas o poco realistas?',
-        '¿Estoy buscando una compañera de vida o una persona que cumpla una lista de requisitos?',
-        '¿Qué puedo hacer para convertirme en el tipo de pareja que deseo encontrar?'
+      { num: 16, title: 'Autoevaluación: lo que puedo ofrecer como pareja', preguntas: [
+        '¿Considero imprescindible para mí ser honesto, leal y coherente con mis compromisos?',
+        '¿Considero imprescindible para mí reconocer mis errores y pedir perdón cuando corresponda?',
+        '¿Considero imprescindible para mí respetar la autonomía, los límites y las necesidades de mi pareja?',
+        '¿Considero imprescindible para mí asumir mis responsabilidades económicas, domésticas y familiares?',
+        '¿Considero imprescindible para mí apoyar a mi pareja en las dificultades y contribuir a su bienestar?',
+        '¿Considero imprescindible para mí revisar mis propias expectativas y trabajar en los defectos que puedan perjudicar la relación?'
       ]}
     ];
 
-    const FINAL_BLOCKS = [
-      { label: 'A. Mis 5 no negociables absolutos', items: 5 },
-      { label: 'B. Mis 5 preferencias más importantes', items: 5 },
-      { label: 'C. Mis 5 características deseables, pero prescindibles', items: 5 },
-      { label: 'D. Mis motivos para terminar una relación', items: 5 },
-      { label: 'E. Mis 5 cualidades más importantes como futuro esposo', items: 5 },
-      { label: 'F. Mis tres preguntas imprescindibles antes del matrimonio', items: 3 },
-      { label: 'G. Mi reflexión final: ¿qué tipo de vida quiero construir, qué clase de mujer encaja con esa vida y qué estoy dispuesto a ofrecer para construirla juntos?', textarea: true }
+    const FINAL_QUESTIONS = [
+      '¿Estoy dispuesto a aplicar a mí mismo los criterios que exijo a mi pareja?',
+      '¿Estoy dispuesto a aceptar diferencias razonables sin intentar cambiar la personalidad de mi pareja?',
+      '¿Considero imprescindible buscar una compañera de vida con quien construir un proyecto común, en lugar de buscar a alguien que cumpla una lista perfecta de requisitos?'
     ];
 
     const L = (tag, attrs, children) => {
@@ -240,7 +203,7 @@
 
     const buildSegment = key => {
       const seg = L('div', { class: 'seg', role: 'radiogroup', 'aria-label': 'Clasificación del criterio' });
-      [['n', 'N', 'No negociable'], ['p', 'P', 'Preferencia importante'], ['d', 'D', 'Deseable']].forEach(([cls, txt, title]) => {
+      [['n', 'No negociable para mí', 'Imprescindible en una relación seria'], ['p', 'Negociable para mí', 'Puedo aceptar diferencias en este aspecto']].forEach(([cls, txt, title]) => {
         const id = `${key}-${cls}`;
         const input = L('input', { type: 'radio', name: key, value: cls, id, 'data-key': key });
         const label = L('label', { for: id, class: `opt ${cls}`, title }, [input, L('span', {}, [document.createTextNode(txt)])]);
@@ -259,7 +222,7 @@
         ])
       );
       article.append(buildSegment(key));
-      const ta = L('textarea', { rows: 3, placeholder: 'Tu respuesta…', 'data-key': key });
+      const ta = L('textarea', { rows: 2, placeholder: 'notas opcionales', 'data-key': `${key}-nota` });
       article.append(ta);
       return article;
     };
@@ -275,36 +238,54 @@
     };
 
     const buildFinal = () => {
-      const section = L('section', { class: 'estudio final', id: 'sec-18' });
+      const section = L('section', { class: 'estudio final', id: 'sec-final' });
       section.append(L('h2', { class: 'sec-title' }, [
-        L('span', { class: 'sec-num' }, [document.createTextNode('18')]),
-        document.createTextNode(' Decisión final: mi lista priorizada')
+        L('span', { class: 'sec-num' }, [document.createTextNode('★')]),
+        document.createTextNode(' Reflexión final')
       ]));
-      section.append(L('p', { class: 'sec-intro' }, [document.createTextNode('Después de responder todas las preguntas, completaré estas categorías:')]));
 
-      FINAL_BLOCKS.forEach((block, bi) => {
-        const box = L('div', { class: 'list-block' });
-        box.append(L('h3', { class: 'block-title' }, [document.createTextNode(block.label)]));
-        if (block.textarea) {
-          const key = `s18b${bi}`;
-          box.append(L('textarea', { rows: 8, placeholder: 'Escribe aquí tu reflexión…', 'data-key': key }));
-        } else {
-          for (let i = 0; i < block.items; i++) {
-            const key = `s18b${bi}i${i}`;
-            const row = L('div', { class: 'list-row' });
-            row.append(L('span', { class: 'row-num' }, [document.createTextNode(`${i + 1}.`)]));
-            row.append(L('input', { type: 'text', placeholder: '…', 'data-key': key }));
-            box.append(row);
-          }
-        }
-        section.append(box);
+      FINAL_QUESTIONS.forEach((q, i) => {
+        const key = `final${i + 1}`;
+        const article = L('article', { class: 'q' });
+        article.append(
+          L('h3', { class: 'q-text' }, [
+            L('span', { class: 'q-num' }, [document.createTextNode(`${i + 1}.`)]),
+            document.createTextNode(' ' + q)
+          ])
+        );
+        article.append(buildSegment(key));
+        article.append(L('textarea', { rows: 2, placeholder: 'notas opcionales', 'data-key': `${key}-nota` }));
+        section.append(article);
       });
+
+      const box = L('div', { class: 'list-block' });
+      box.append(L('h3', { class: 'block-title' }, [document.createTextNode('Mi propósito')]));
+      box.append(L('p', { class: 'block-proposito' }, [document.createTextNode('identificar qué necesito realmente en una pareja, qué diferencias puedo aceptar y qué clase de esposo quiero ser para construir una relación sana y duradera.')]));
+      section.append(box);
+
+      return section;
+    };
+
+    const buildSummary = () => {
+      const section = L('section', { class: 'estudio resumen', id: 'sec-resumen' });
+      section.append(L('h2', { class: 'sec-title' }, [
+        L('span', { class: 'sec-num' }, [document.createTextNode('✓')]),
+        document.createTextNode(' Mi resumen: criterios no negociables')
+      ]));
+      section.append(L('div', { class: 'resumen-body', id: 'resumen-body' }));
       return section;
     };
 
     const content = document.getElementById('content');
     SECTIONS.forEach(sec => content.append(buildSection(sec)));
+    content.append(buildSummary());
     content.append(buildFinal());
+
+    const ALL_KEYS = [];
+    SECTIONS.forEach(sec => {
+      for (let i = 1; i <= sec.preguntas.length; i++) ALL_KEYS.push(`s${sec.num}q${i}`);
+    });
+    for (let i = 1; i <= FINAL_QUESTIONS.length; i++) ALL_KEYS.push(`final${i}`);
 
     const loadData = () => {
       try {
@@ -315,65 +296,288 @@
     };
 
     const data = loadData();
-    document.querySelectorAll('[data-key]').forEach(el => {
-      if (el.type === 'radio') {
-        if (el.value === data[el.dataset.key]) el.checked = true;
-      } else if (data[el.dataset.key]) {
-        el.value = data[el.dataset.key];
-      }
-    });
+
+    const grow = t => {
+      t.style.height = 'auto';
+      t.style.height = Math.max(t.scrollHeight, 36) + 'px';
+    };
+
+    const growAll = () => {
+      document.querySelectorAll('textarea[data-key]').forEach(grow);
+    };
+
+    const restoreData = d => {
+      document.querySelectorAll('[data-key]').forEach(el => {
+        if (el.type === 'radio') {
+          el.checked = !!d[el.dataset.key] && el.value === d[el.dataset.key];
+        } else {
+          el.value = d[el.dataset.key] || '';
+          grow(el);
+        }
+      });
+    };
+
+    restoreData(data);
 
     const statusEl = document.getElementById('save-status');
-    let saveTimer = null;
+    let statusTimer = null;
 
-    const doSave = () => {
+    const showStatus = (msg, isError) => {
+      statusEl.textContent = msg;
+      statusEl.classList.add('visible');
+      statusEl.classList.toggle('error', !!isError);
+      clearTimeout(statusTimer);
+      statusTimer = setTimeout(() => statusEl.classList.remove('visible'), isError ? 4000 : 1500);
+    };
+
+    const buildState = () => {
       const out = {};
       document.querySelectorAll('[data-key]').forEach(el => {
         const filled = el.type === 'radio' ? el.checked : el.value.trim() !== '';
-        const value = el.type === 'radio' ? el.value : el.value;
-        if (filled) out[el.dataset.key] = value;
+        if (filled) out[el.dataset.key] = el.value;
       });
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(out));
-      statusEl.textContent = 'Guardado ✓';
-      statusEl.classList.add('visible');
-      if (saveTimer) clearTimeout(saveTimer);
-      saveTimer = setTimeout(() => statusEl.classList.remove('visible'), 1500);
+      return out;
+    };
+
+    const isAnswered = v => v === 'n' || v === 'p';
+
+    const progressBtn = document.getElementById('progress-btn');
+    const navFab = document.getElementById('nav-fab');
+    const navPanel = document.getElementById('nav-panel');
+    const fabCount = document.getElementById('fab-count');
+
+    const updateProgress = () => {
+      const st = buildState();
+      const answered = ALL_KEYS.filter(k => isAnswered(st[k])).length;
+      progressBtn.textContent = `${answered} de ${ALL_KEYS.length} respondidas`;
+      progressBtn.classList.toggle('done', answered === ALL_KEYS.length);
+      fabCount.textContent = String(answered);
+      navFab.classList.toggle('all-done', answered === ALL_KEYS.length);
+      return st;
+    };
+
+    const updateNav = () => {
+      const st = buildState();
+      navPanel.textContent = '';
+      SECTIONS.forEach(sec => {
+        const answered = sec.preguntas.filter((_, i) => isAnswered(st[`s${sec.num}q${i + 1}`])).length;
+        const chip = L('button', { type: 'button', class: 'nav-chip', 'data-target': `sec-${sec.num}` });
+        chip.classList.toggle('done', answered === sec.preguntas.length);
+        chip.classList.toggle('empty', answered === 0);
+        chip.append(
+          L('span', { class: 'chip-count' }, [document.createTextNode(`${answered}/${sec.preguntas.length}`)]),
+          document.createTextNode(sec.title)
+        );
+        navPanel.append(chip);
+      });
+      ['sec-resumen', 'sec-final'].forEach(target => {
+        const chip = L('button', { type: 'button', class: 'nav-chip extra', 'data-target': target });
+        chip.append(document.createTextNode(target === 'sec-resumen' ? 'Mi resumen' : 'Reflexión final'));
+        navPanel.append(chip);
+      });
+    };
+
+    navFab.addEventListener('click', () => {
+      navPanel.hidden = !navPanel.hidden;
+      navFab.setAttribute('aria-expanded', String(!navPanel.hidden));
+    });
+
+    navPanel.addEventListener('click', e => {
+      const chip = e.target.closest('.nav-chip');
+      if (!chip) return;
+      document.getElementById(chip.dataset.target).scrollIntoView({ behavior: 'smooth', block: 'start' });
+      navPanel.hidden = true;
+      navFab.setAttribute('aria-expanded', 'false');
+    });
+
+    document.addEventListener('click', e => {
+      if (!navPanel.hidden && !navPanel.contains(e.target) && !navFab.contains(e.target)) {
+        navPanel.hidden = true;
+        navFab.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    const updateSummary = () => {
+      const body = document.getElementById('resumen-body');
+      if (!body) return;
+      const st = buildState();
+      body.textContent = '';
+      let any = false;
+      SECTIONS.forEach(sec => {
+        const items = sec.preguntas
+          .map((q, i) => ({ q, key: `s${sec.num}q${i + 1}` }))
+          .filter(x => st[x.key] === 'n');
+        if (!items.length) return;
+        any = true;
+        const block = L('div', { class: 'resumen-group' });
+        block.append(L('h3', { class: 'resumen-title' }, [document.createTextNode(`${sec.num}. ${sec.title}`)]));
+        const ul = L('ul', {});
+        items.forEach(x => ul.append(L('li', {}, [document.createTextNode(x.q)])));
+        block.append(ul);
+        body.append(block);
+      });
+      if (!any) {
+        body.append(L('p', { class: 'resumen-empty' }, [
+          document.createTextNode('Aún no has marcado ningún criterio como «No negociable para mí». Se listarán aquí automáticamente al marcarlos.')
+        ]));
+      }
+    };
+
+    let saveTimer = null;
+
+    const doSave = () => {
+      clearTimeout(saveTimer);
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(buildState()));
+        showStatus('Guardado ✓');
+      } catch {
+        showStatus('No se pudo guardar el progreso', true);
+      }
+      updateProgress();
+      updateSummary();
+      updateNav();
+    };
+
+    const scheduleSave = () => {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(doSave, 300);
     };
 
     document.addEventListener('input', e => {
-      if (e.target.matches('[data-key]')) doSave();
+      if (e.target.matches('[data-key]')) {
+        if (e.target.matches('textarea')) grow(e.target);
+        scheduleSave();
+        updateProgress();
+        updateSummary();
+      }
     });
     document.addEventListener('change', e => {
-      if (e.target.matches('[data-key]')) doSave();
+      if (e.target.matches('[data-key]')) {
+        scheduleSave();
+        updateProgress();
+        updateSummary();
+        updateNav();
+      }
+    });
+
+    window.addEventListener('beforeunload', doSave);
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) doSave();
+    });
+
+    updateProgress();
+    updateSummary();
+    updateNav();
+
+    progressBtn.addEventListener('click', () => {
+      const st = buildState();
+      const next = ALL_KEYS.find(k => !isAnswered(st[k]));
+      if (next) {
+        document.querySelector(`input[data-key="${next}"]`).closest('.q')
+          .scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        document.getElementById('sec-final').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+
+    document.getElementById('export-btn').addEventListener('click', () => {
+      const blob = new Blob([JSON.stringify(buildState(), null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = L('a', { href: url, download: `criterios-pareja-${new Date().toISOString().slice(0, 10)}.json` });
+      document.body.append(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showStatus('Exportado ✓');
+    });
+
+    const importInput = document.getElementById('import-file');
+    document.getElementById('import-btn').addEventListener('click', () => importInput.click());
+    importInput.addEventListener('change', () => {
+      const file = importInput.files[0];
+      importInput.value = '';
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const d = JSON.parse(reader.result);
+          if (typeof d !== 'object' || d === null || Array.isArray(d)) throw new Error('formato');
+          const keys = Object.keys(d);
+          if (keys.length && !keys.some(k => /^(s\d+q\d+|final\d+)$/.test(k))) throw new Error('formato');
+          restoreData(d);
+          doSave();
+        } catch {
+          showStatus('Archivo JSON no válido', true);
+        }
+      };
+      reader.readAsText(file);
     });
 
     document.getElementById('print-btn').addEventListener('click', () => window.print());
 
-    document.getElementById('clear-btn').addEventListener('click', () => {
-      if (!confirm('¿Seguro que quieres borrar todas las respuestas guardadas? Esta acción no se puede deshacer.')) return;
+    const modal = document.getElementById('clear-modal');
+    const openModal = () => { modal.hidden = false; };
+    const closeModal = () => { modal.hidden = true; };
+    document.getElementById('clear-btn').addEventListener('click', openModal);
+    document.getElementById('clear-cancel-btn').addEventListener('click', closeModal);
+    modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+    const toast = document.getElementById('restore-toast');
+    let toastTimer = null;
+    const hideToast = () => { toast.hidden = true; clearTimeout(toastTimer); };
+
+    document.getElementById('clear-confirm-btn').addEventListener('click', () => {
+      try {
+        localStorage.setItem('criterios-pareja-backup', JSON.stringify(buildState()));
+      } catch {}
       localStorage.removeItem(STORAGE_KEY);
-      document.querySelectorAll('[data-key]').forEach(el => {
-        if (el.type === 'radio') el.checked = false;
-        else el.value = '';
-      });
-      statusEl.textContent = 'Respuestas borradas';
-      statusEl.classList.add('visible');
-      setTimeout(() => statusEl.classList.remove('visible'), 2000);
+      restoreData({});
+      updateProgress();
+      updateSummary();
+      updateNav();
+      closeModal();
+      toast.hidden = false;
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(hideToast, 8000);
     });
 
-    // Expandir textareas al imprimir para que se vea todo el texto sin cortes.
-    window.addEventListener('beforeprint', () => {
-      document.querySelectorAll('textarea').forEach(t => {
-        t.dataset.h = t.style.height || '';
-        t.style.height = 'auto';
-        t.style.height = Math.max(t.scrollHeight, 40) + 'px';
-      });
+    document.getElementById('restore-btn').addEventListener('click', () => {
+      try {
+        const backup = JSON.parse(localStorage.getItem('criterios-pareja-backup')) || {};
+        restoreData(backup);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(backup));
+      } catch {
+        showStatus('No se pudo restaurar', true);
+      }
+      hideToast();
+      updateProgress();
+      updateSummary();
+      updateNav();
+      showStatus('Restaurado ✓');
     });
-    window.addEventListener('afterprint', () => {
-      document.querySelectorAll('textarea[data-h]').forEach(t => {
-        t.style.height = t.dataset.h;
-        delete t.dataset.h;
-      });
+
+    toast.querySelector('.close').addEventListener('click', hideToast);
+
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'Escape') return;
+      if (!modal.hidden) closeModal();
+      if (!navPanel.hidden) {
+        navPanel.hidden = true;
+        navFab.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    // Ajustar textareas con las métricas vigentes (altura de pantalla ↔ impresión).
+    window.addEventListener('beforeprint', () => {
+      doSave();
+      growAll();
+    });
+    window.addEventListener('afterprint', growAll);
+
+    let resizeTimer = null;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(growAll, 150);
     });
   </script>
 </body>
