@@ -423,6 +423,16 @@ main,
   margin-bottom: 1.75rem;
 }
 
+.q:has(.seg input:checked) {
+  background: #f0fdf4;
+  box-shadow: inset 3px 0 0 #16a34a;
+  border-radius: 6px;
+}
+
+.q:has(.seg input:checked) .q-num {
+  color: #16a34a;
+}
+
 .q-text {
   font-size: 0.95rem;
   font-weight: 600;
